@@ -21,7 +21,6 @@ import static de.kairos.fhir.centraxx.metamodel.RootEntities.laborMapping
  * Represented by a CXX LaborMapping
  * @author Mike Wähnert
  * @since kairos-fhir-dsl.v.1.12.0, CXX.v.3.18.1.19, CXX.v.3.18.2
- * TODO: extend example for Enumerations and RadioOptionGroups
  * The first code of each component represents the LaborValue.Code in CXX. Further codes could be representations in LOINC, SNOMED-CT etc.
  * LaborValueIdContainer in CXX are just an export example, but not intended to be imported by CXX FHIR API yet.
  */
@@ -34,10 +33,11 @@ observation {
   id = "Observation/" + context.source[laborMapping().laborFinding().id()]
 
   status = Observation.ObservationStatus.UNKNOWN
+  String urnCentraxx = "urn:centraxx"
 
   code {
     coding {
-      system = "urn:centraxx"
+      system = urnCentraxx
       code = context.source[laborMapping().laborFinding().shortName()] as String
     }
   }
@@ -56,7 +56,7 @@ observation {
         value = patIdContainer[PSN]
         type {
           coding {
-            system = "urn:centraxx"
+            system = urnCentraxx
             code = patIdContainer[ID_CONTAINER_TYPE]?.getAt(CODE) as String
           }
         }
@@ -66,7 +66,7 @@ observation {
 
   method {
     coding {
-      system = "urn:centraxx"
+      system = urnCentraxx
       version = context.source[laborMapping().laborFinding().laborMethod().version()]
       code = context.source[laborMapping().laborFinding().laborMethod().code()] as String
     }
@@ -76,7 +76,7 @@ observation {
     component {
       code {
         coding {
-          system = "urn:centraxx"
+          system = urnCentraxx
           code = lflv[LaborFindingLaborValue.LABOR_VALUE]?.getAt(CODE) as String
         }
         lflv[LaborFindingLaborValue.LABOR_VALUE]?.getAt(LaborValue.IDCONTAINERS)?.each { final idContainer ->
@@ -111,17 +111,40 @@ observation {
         valueString(lflv[LaborFindingLaborValue.STRING_VALUE] as String)
       }
 
+      if (isEnumeration(lflv)) {
+        valueCodeableConcept {
+          lflv["enumerationValue"].each { final entry ->
+            coding {
+              system = "Controlled Vocabulary"
+              code = entry[CODE] as String
+            }
+          }
+        }
+      }
+
+      if (isOptionGroup(lflv)) {
+        valueCodeableConcept {
+          lflv["optionGroupValue"].each { final entry ->
+            coding {
+              system = "Option Group"
+              code = entry[CODE] as String
+            }
+
+          }
+        }
+      }
+
       if (isCatalog(lflv)) {
         valueCodeableConcept {
           lflv[LaborFindingLaborValue.CATALOG_ENTRY_VALUE].each { final entry ->
             coding {
-              system = "urn:centraxx:CodeSystem/ValueList-" + entry[CatalogEntry.CATALOG]?.getAt(AbstractCatalog.ID)
+              system = urnCentraxx + ":CodeSystem/ValueList-" + entry[CatalogEntry.CATALOG]?.getAt(AbstractCatalog.ID)
               code = entry[CODE] as String
             }
           }
           lflv[LaborFindingLaborValue.ICD_ENTRY_VALUE].each { final entry ->
             coding {
-              system = "urn:centraxx:CodeSystem/IcdCatalog-" + entry[IcdEntry.CATALOGUE]?.getAt(AbstractCatalog.ID)
+              system = urnCentraxx + ":CodeSystem/IcdCatalog-" + entry[IcdEntry.CATALOGUE]?.getAt(AbstractCatalog.ID)
               code = entry[CODE] as String
             }
           }
